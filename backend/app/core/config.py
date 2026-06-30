@@ -10,11 +10,13 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 
 BASE_DIR = Path(__file__).resolve().parents[2]
 ENV_FILE = BASE_DIR / ".env"
+
 DEFAULT_CORS_ORIGINS = [
     "http://localhost:5173",
     "http://localhost:3000",
     "http://127.0.0.1:5173",
     "http://127.0.0.1:3000",
+    "https://gemai-chi.vercel.app",
 ]
 
 load_dotenv(dotenv_path=ENV_FILE)
@@ -37,7 +39,7 @@ class Settings(BaseSettings):
     # JWT
     SECRET_KEY: str = "change-me-in-production"
     ALGORITHM: str = "HS256"
-    ACCESS_TOKEN_EXPIRE_MINUTES: int = 1440  # 24 hours
+    ACCESS_TOKEN_EXPIRE_MINUTES: int = 1440
 
     # OpenRouter
     OPENROUTER_API_KEY: str = ""
@@ -50,6 +52,8 @@ class Settings(BaseSettings):
     OPENROUTER_TIMEOUT_SECONDS: int = 45
     OPENROUTER_HTTP_REFERER: str = "http://localhost:5173"
     OPENROUTER_APP_TITLE: str = "Gem-AI"
+
+    # Email / OTP
     SMTP_HOST: str = "smtp.gmail.com"
     SMTP_PORT: int = 587
     SMTP_SENDER_EMAIL: str = ""
@@ -65,13 +69,15 @@ class Settings(BaseSettings):
     @field_validator("CORS_ORIGINS", mode="before")
     @classmethod
     def normalize_cors_origins(cls, value: Any) -> list[str]:
-        """Allow CORS origins to be provided as a CSV string or list."""
         if value is None:
             return list(DEFAULT_CORS_ORIGINS)
+
         if isinstance(value, str):
             return [origin.strip() for origin in value.split(",") if origin.strip()]
+
         if isinstance(value, (list, tuple, set)):
             return [str(origin).strip() for origin in value if str(origin).strip()]
+
         raise ValueError("CORS_ORIGINS must be a comma-separated string or a list")
 
 
