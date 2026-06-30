@@ -1,33 +1,45 @@
+# =========================
 # Python
+# =========================
 backend/.venv/
-backend/__pycache__/
-*.pyc
-
-# Environment files
-.env
-backend/.env
-frontend/.env
-
-# Node
-frontend/node_modules/
-
-# Database
-*.db
-
-# VS Code
-.vscode/
-
-# OS
-.DS_Store
-Thumbs.db
-# Logs
-*.log
-logs/
-
-# Python cache
+**/__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
 .pytest_cache/
 .mypy_cache/
 
+# =========================
+# Environment Variables
+# =========================
+.env
+**/.env
+
+# =========================
+# Database
+# =========================
+*.db
+*.sqlite3
+
+# =========================
 # Node
-npm-debug.log*
-yarn-error.log*
+# =========================
+frontend/node_modules/
+frontend/dist/
+
+# =========================
+# Logs
+# =========================
+*.log
+logs/
+
+# =========================
+# VS Code
+# =========================
+.vscode/
+
+# =========================
+# OS Files
+# =========================
+.DS_Store
+Thumbs.db

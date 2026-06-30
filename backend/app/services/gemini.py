@@ -492,8 +492,9 @@ def _save_generated_image(image_bytes: bytes, mime_type: Optional[str]) -> str:
     filepath = IMAGES_DIR / filename
     filepath.write_bytes(image_bytes)
     logger.info("Image generated and saved: %s", filename)
-    return f"/static/images/{filename}"
+   from app.core.config import settings
 
+return f"{settings.BACKEND_URL}/static/images/{filename}"
 
 def _generate_image_with_pollinations(user_message: str) -> Optional[dict]:
     """Fallback to a hosted image endpoint when direct image output is unavailable."""
