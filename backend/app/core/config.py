@@ -63,7 +63,7 @@ class Settings(BaseSettings):
 
     # App
     APP_NAME: str = "Gem-AI"
-    DEBUG: bool = True
+    DEBUG: bool = False
     BACKEND_URL: str = "http://localhost:8080"
     CORS_ORIGINS: list[str] = DEFAULT_CORS_ORIGINS
 
