@@ -1,0 +1,33 @@
+# Python
+backend/.venv/
+backend/__pycache__/
+*.pyc
+
+# Environment files
+.env
+backend/.env
+frontend/.env
+
+# Node
+frontend/node_modules/
+
+# Database
+*.db
+
+# VS Code
+.vscode/
+
+# OS
+.DS_Store
+Thumbs.db
+# Logs
+*.log
+logs/
+
+# Python cache
+.pytest_cache/
+.mypy_cache/
+
+# Node
+npm-debug.log*
+yarn-error.log*
