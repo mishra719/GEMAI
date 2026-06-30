@@ -64,6 +64,7 @@ class Settings(BaseSettings):
     # App
     APP_NAME: str = "Gem-AI"
     DEBUG: bool = True
+    BACKEND_URL: str = "http://localhost:8080"
     CORS_ORIGINS: list[str] = DEFAULT_CORS_ORIGINS
 
     @field_validator("CORS_ORIGINS", mode="before")
