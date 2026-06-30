@@ -86,14 +86,6 @@ def register(payload: UserRegister, db: Session = Depends(get_db)):
 def login(payload: UserLogin, db: Session = Depends(get_db)):
     """Authenticate a user and return JWT."""
 
-    users = db.query(User).all()
-
-
-logger.info("========== USERS IN DATABASE ==========")
-for u in users:
-    logger.info("ID=%s EMAIL=%s", u.id, u.email)
-
-    logger.info("=======================================")
     user = db.query(User).filter(User.email == payload.email).first()
 
     if not user or not verify_password(payload.password, user.hashed_password):
@@ -105,7 +97,8 @@ for u in users:
     logger.info("User logged in: %s", user.email)
 
     token = create_access_token(data={"sub": str(user.id)})
- return TokenResponse(
+
+    return TokenResponse(
         access_token=token,
         user=UserResponse.model_validate(user),
     )
