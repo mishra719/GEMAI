@@ -46,7 +46,7 @@ def _generate_otp() -> str:
 @router.post("/register", response_model=TokenResponse, status_code=status.HTTP_201_CREATED)
 def register(payload: UserRegister, db: Session = Depends(get_db)):
     """Register a new user account."""
-    # Check if email already exists
+
     existing = db.query(User).filter(User.email == payload.email).first()
     if existing:
         raise HTTPException(
@@ -54,12 +54,13 @@ def register(payload: UserRegister, db: Session = Depends(get_db)):
             detail="An account with this email already exists",
         )
 
-    # Create user
     user = User(
         email=payload.email,
         hashed_password=hash_password(payload.password),
     )
+
     db.add(user)
+
     try:
         db.commit()
     except IntegrityError:
@@ -68,11 +69,11 @@ def register(payload: UserRegister, db: Session = Depends(get_db)):
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="An account with this email already exists",
         ) from None
+
     db.refresh(user)
 
-    logger.info(f"New user registered: {user.email}")
+    logger.info("New user registered: %s", user.email)
 
-    # Generate token
     token = create_access_token(data={"sub": str(user.id)})
 
     return TokenResponse(
@@ -83,7 +84,8 @@ def register(payload: UserRegister, db: Session = Depends(get_db)):
 
 @router.post("/login", response_model=TokenResponse)
 def login(payload: UserLogin, db: Session = Depends(get_db)):
-    """Authenticate a user and return a JWT token."""
+    """Authenticate a user and return JWT."""
+
     user = db.query(User).filter(User.email == payload.email).first()
 
     if not user or not verify_password(payload.password, user.hashed_password):
@@ -92,7 +94,7 @@ def login(payload: UserLogin, db: Session = Depends(get_db)):
             detail="Invalid email or password",
         )
 
-    logger.info(f"User logged in: {user.email}")
+    logger.info("User logged in: %s", user.email)
 
     token = create_access_token(data={"sub": str(user.id)})
 
@@ -104,47 +106,69 @@ def login(payload: UserLogin, db: Session = Depends(get_db)):
 
 @router.post("/forgot-password", response_model=DetailResponse)
 def forgot_password(payload: ForgotPasswordRequest, db: Session = Depends(get_db)):
-    """Generate and send an OTP for password recovery."""
+    """Generate and send OTP for password reset."""
+
     generic_detail = "If that email exists, an OTP has been sent to your inbox."
+
+    logger.info("=" * 60)
+    logger.info("FORGOT PASSWORD REQUEST")
+    logger.info("Requested Email: %s", payload.email)
+
     user = db.query(User).filter(User.email == payload.email).first()
 
     if not user:
+        logger.warning("User NOT FOUND: %s", payload.email)
+        logger.info("=" * 60)
         return DetailResponse(detail=generic_detail)
 
+    logger.info("User FOUND: %s", user.email)
+
     otp = _generate_otp()
+    logger.info("OTP Generated Successfully")
+
     user.reset_otp_hash = hash_otp(otp)
     user.reset_otp_expires_at = datetime.now(timezone.utc) + timedelta(
         minutes=settings.OTP_EXPIRY_MINUTES
     )
+
     db.commit()
 
+    logger.info("OTP Saved Into Database")
+
     try:
+        logger.info("Calling send_password_reset_otp_email()")
+
         send_password_reset_otp_email(
             to_email=user.email,
             otp=otp,
             expires_in_minutes=settings.OTP_EXPIRY_MINUTES,
         )
-        logger.info("Password reset OTP sent to %s", user.email)
+
+        logger.info("EMAIL SENT SUCCESSFULLY")
+        logger.info("=" * 60)
+
         return DetailResponse(detail=generic_detail)
+
     except Exception as exc:
-        logger.warning("OTP email delivery failed for %s: %s", user.email, exc)
+        logger.exception("EMAIL SENDING FAILED")
+
         if settings.DEBUG:
             return DetailResponse(
-                detail=(
-                    f"Email delivery is not configured. Development OTP: {otp} "
-                    f"(valid for {settings.OTP_EXPIRY_MINUTES} minutes)"
-                )
+                detail=f"Development OTP: {otp}"
             )
+
         raise HTTPException(
             status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
-            detail="Unable to send OTP email right now. Please try again later.",
+            detail=f"Email sending failed: {str(exc)}",
         ) from exc
 
 
 @router.post("/reset-password", response_model=DetailResponse)
 def reset_password(payload: ResetPasswordRequest, db: Session = Depends(get_db)):
-    """Reset a user's password with a valid OTP."""
+    """Reset password using OTP."""
+
     user = db.query(User).filter(User.email == payload.email).first()
+
     if not user or not user.reset_otp_hash or not user.reset_otp_expires_at:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
@@ -153,6 +177,7 @@ def reset_password(payload: ResetPasswordRequest, db: Session = Depends(get_db))
 
     now = datetime.now(timezone.utc)
     expires_at = user.reset_otp_expires_at
+
     if expires_at.tzinfo is None:
         expires_at = expires_at.replace(tzinfo=timezone.utc)
 
@@ -160,6 +185,7 @@ def reset_password(payload: ResetPasswordRequest, db: Session = Depends(get_db))
         user.reset_otp_hash = None
         user.reset_otp_expires_at = None
         db.commit()
+
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="OTP has expired. Please request a new one.",
@@ -174,7 +200,11 @@ def reset_password(payload: ResetPasswordRequest, db: Session = Depends(get_db))
     user.hashed_password = hash_password(payload.new_password)
     user.reset_otp_hash = None
     user.reset_otp_expires_at = None
+
     db.commit()
 
     logger.info("Password reset completed for %s", user.email)
-    return DetailResponse(detail="Password updated successfully. You can sign in now.")
+
+    return DetailResponse(
+        detail="Password updated successfully. You can sign in now."
+    )
